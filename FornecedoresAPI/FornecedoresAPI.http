@@ -1,6 +1,6 @@
 @FornecedoresAPI_HostAddress = http://localhost:5135
 
-GET {{FornecedoresAPI_HostAddress}}/todos/
+GET {{FornecedoresAPI_HostAddress}}/swagger/
 Accept: application/json
 
 ###
