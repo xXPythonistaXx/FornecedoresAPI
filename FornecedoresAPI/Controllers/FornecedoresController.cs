@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FornecedoresAPI.Data;
 using FornecedoresAPI.Models;
+using FornecedoresAPI.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace FornecedoresAPI.Controllers
 {
@@ -12,68 +10,44 @@ namespace FornecedoresAPI.Controllers
     [ApiController]
     public class FornecedoresController : ControllerBase
     {
-        private readonly FornecedoresContext _context;
-        private readonly ILogger<FornecedoresController> _logger;
+        private readonly FornecedorService _fornecedorService;
 
-        public FornecedoresController(FornecedoresContext context, ILogger<FornecedoresController> logger)
+        public FornecedoresController(FornecedorService fornecedorService)
         {
-            _context = context;
-            _logger = logger;
-
+            _fornecedorService = fornecedorService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Fornecedor>>> GetFornecedores()
         {
-            return await _context.Fornecedores.ToListAsync();
+            var result = await _fornecedorService.GetFornecedoresAsync();
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { Message = result.ErrorMessage });
+            }
+            return Ok(result.Value);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Fornecedor>> GetFornecedor(int id)
         {
-            try
+            var result = await _fornecedorService.GetFornecedorAsync(id);
+            if (!result.IsSuccess)
             {
-                var fornecedor = await _context.Fornecedores.FindAsync(id);
-
-                if (fornecedor == null)
-                {
-                    return NotFound(new { message = "Fornecedor não encontrado." });
-                }
-
-                return fornecedor;
+                return NotFound(new { Message = result.ErrorMessage });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao buscar fornecedor.");
-                return StatusCode(500, new { message = "Erro interno do servidor." });
-            }
+            return Ok(result.Value);
         }
 
         [HttpPost]
         public async Task<ActionResult<Fornecedor>> PostFornecedor(Fornecedor fornecedor)
         {
-            if (!ModelState.IsValid)
+            var result = await _fornecedorService.AddFornecedorAsync(fornecedor);
+            if (!result.IsSuccess)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { Message = result.ErrorMessage });
             }
-
-            try
-            {
-                _context.Fornecedores.Add(fornecedor);
-                await _context.SaveChangesAsync();
-                return CreatedAtAction(nameof(GetFornecedor), new { id = fornecedor.Id }, fornecedor);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError(ex, "Erro ao adicionar fornecedor.");
-                return StatusCode(500, new { message = "Erro ao adicionar fornecedor." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro inesperado ao adicionar fornecedor.");
-                return StatusCode(500, new { message = "Erro interno do servidor." });
-            }
-
+            return CreatedAtAction(nameof(GetFornecedor), new { id = result.Value.Id }, result.Value);
         }
 
         [HttpPut("{id}")]
@@ -81,48 +55,26 @@ namespace FornecedoresAPI.Controllers
         {
             if (id != fornecedor.Id)
             {
-                return BadRequest();
+                return BadRequest(new { Message = "ID do fornecedor não corresponde." });
             }
 
-            _context.Entry(fornecedor).State = EntityState.Modified;
-
-            try
+            var result = await _fornecedorService.UpdateFornecedorAsync(fornecedor);
+            if (!result.IsSuccess)
             {
-                await _context.SaveChangesAsync();
+                return NotFound(new { Message = result.ErrorMessage });
             }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!FornecedorExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFornecedor(int id)
         {
-            var fornecedor = await _context.Fornecedores.FindAsync(id);
-            if (fornecedor == null)
+            var result = await _fornecedorService.DeleteFornecedorAsync(id);
+            if (!result.IsSuccess)
             {
-                return NotFound();
+                return NotFound(new { Message = result.ErrorMessage });
             }
-
-            _context.Fornecedores.Remove(fornecedor);
-            await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool FornecedorExists(int id)
-        {
-            return _context.Fornecedores.Any(e => e.Id == id);
         }
     }
 }
