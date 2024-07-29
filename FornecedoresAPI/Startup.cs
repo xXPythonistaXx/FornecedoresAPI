@@ -5,37 +5,33 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using FornecedoresAPI.Data;
+using FornecedoresAPI.Interfaces;
 using FornecedoresAPI.Services;
+using FornecedoresAPI.Repositories;
 using FornecedoresAPI.Middleware;
-using FluentValidation.AspNetCore;
-using Microsoft.OpenApi.Models;
-using FornecedoresAPI.Validations;
 
 namespace FornecedoresAPI
 {
     public class Startup
     {
-        public IConfiguration Configuration { get; }
-
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
+        public IConfiguration Configuration { get; }
+
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers()
-                    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<FornecedorValidator>());
+            services.AddControllers();
+            services.AddSwaggerGen();
 
             services.AddDbContext<FornecedoresContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
-
-            services.AddScoped<FornecedorService>();
-
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "FornecedoresAPI", Version = "v1" });
-            });
+                           options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"),
+                               sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
+            services.AddMvc();
+            services.AddScoped<IFornecedorService, FornecedorService>();
+            services.AddScoped<IFornecedorRepository, FornecedorRepository>();
 
         }
 
@@ -44,6 +40,8 @@ namespace FornecedoresAPI
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "FornecedoresAPI v1"));
             }
 
             app.UseMiddleware<ExceptionMiddleware>();
@@ -57,12 +55,6 @@ namespace FornecedoresAPI
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-            });
-
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "FornecedoresAPI v1");
             });
         }
     }

@@ -1,65 +1,60 @@
-﻿using FornecedoresAPI.Data;
+﻿using FornecedoresAPI.Interfaces;
 using FornecedoresAPI.Models;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace FornecedoresAPI.Services
 {
-    public class FornecedorService
+    public class FornecedorService : IFornecedorService
     {
-        private readonly FornecedoresContext _context;
+        private readonly IFornecedorRepository _fornecedorRepository;
 
-        public FornecedorService(FornecedoresContext context)
+        public FornecedorService(IFornecedorRepository fornecedorRepository)
         {
-            _context = context;
+            _fornecedorRepository = fornecedorRepository;
         }
 
         public async Task<Result<List<Fornecedor>>> GetFornecedoresAsync()
         {
-            var fornecedores = await _context.Fornecedores.ToListAsync();
+            var fornecedores = await _fornecedorRepository.GetFornecedoresAsync();
             return Result<List<Fornecedor>>.Success(fornecedores);
         }
 
         public async Task<Result<Fornecedor>> GetFornecedorAsync(int id)
         {
-            var fornecedor = await _context.Fornecedores.FindAsync(id);
+            var fornecedor = await _fornecedorRepository.GetFornecedorAsync(id);
             if (fornecedor == null)
             {
-                return Result<Fornecedor>.Failure("Fornecedor não encontrado.");
+                return Result<Fornecedor>.Fail("Fornecedor não encontrado.");
             }
             return Result<Fornecedor>.Success(fornecedor);
         }
 
         public async Task<Result<Fornecedor>> AddFornecedorAsync(Fornecedor fornecedor)
         {
-            _context.Fornecedores.Add(fornecedor);
-            await _context.SaveChangesAsync();
+            await _fornecedorRepository.AddFornecedorAsync(fornecedor);
             return Result<Fornecedor>.Success(fornecedor);
         }
 
         public async Task<Result> UpdateFornecedorAsync(Fornecedor fornecedor)
         {
-            if (!await _context.Fornecedores.AnyAsync(f => f.Id == fornecedor.Id))
+            var existingFornecedor = await _fornecedorRepository.GetFornecedorAsync(fornecedor.Id);
+            if (existingFornecedor == null)
             {
-                return Result.Failure("Fornecedor não encontrado.");
+                return Result.Fail("Fornecedor não encontrado.");
             }
-
-            _context.Entry(fornecedor).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            await _fornecedorRepository.UpdateFornecedorAsync(fornecedor);
             return Result.Success();
         }
 
         public async Task<Result> DeleteFornecedorAsync(int id)
         {
-            var fornecedorResult = await GetFornecedorAsync(id);
-            if (!fornecedorResult.IsSuccess)
+            var existingFornecedor = await _fornecedorRepository.GetFornecedorAsync(id);
+            if (existingFornecedor == null)
             {
-                return Result.Failure(fornecedorResult.ErrorMessage);
+                return Result.Fail("Fornecedor não encontrado.");
             }
-
-            _context.Fornecedores.Remove(fornecedorResult.Value);
-            await _context.SaveChangesAsync();
+            await _fornecedorRepository.DeleteFornecedorAsync(id);
             return Result.Success();
         }
     }

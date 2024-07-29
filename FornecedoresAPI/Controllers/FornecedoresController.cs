@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using FornecedoresAPI.Models;
-using FornecedoresAPI.Services;
+using FornecedoresAPI.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -10,9 +10,9 @@ namespace FornecedoresAPI.Controllers
     [ApiController]
     public class FornecedoresController : ControllerBase
     {
-        private readonly FornecedorService _fornecedorService;
+        private readonly IFornecedorService _fornecedorService;
 
-        public FornecedoresController(FornecedorService fornecedorService)
+        public FornecedoresController(IFornecedorService fornecedorService)
         {
             _fornecedorService = fornecedorService;
         }
@@ -47,17 +47,17 @@ namespace FornecedoresAPI.Controllers
             {
                 return BadRequest(new { Message = result.ErrorMessage });
             }
+
+            if (result.Value == null)
+            {
+                return StatusCode(500, new { Message = "An unexpected error occurred." });
+            }
             return CreatedAtAction(nameof(GetFornecedor), new { id = result.Value.Id }, result.Value);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutFornecedor(int id, Fornecedor fornecedor)
+        [HttpPut]
+        public async Task<IActionResult> PutFornecedor(Fornecedor fornecedor)
         {
-            if (id != fornecedor.Id)
-            {
-                return BadRequest(new { Message = "ID do fornecedor não corresponde." });
-            }
-
             var result = await _fornecedorService.UpdateFornecedorAsync(fornecedor);
             if (!result.IsSuccess)
             {

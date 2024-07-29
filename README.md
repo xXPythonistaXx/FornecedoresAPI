@@ -35,12 +35,9 @@ Configuração do Projeto
 
 3. Restaurar Pacotes e Aplicar Migrações
 
-   1. Restaurar Pacotes
-      dotnet restore
-
-   2. Aplicar Migrações
-      - Crie a base de dados e aplique as migrações:
-        dotnet ef database update
+   1. Atualize o banco de dados, no Package Manager Console, execute o comando:
+   
+     Update-Database
 
 4. Iniciar a API
 

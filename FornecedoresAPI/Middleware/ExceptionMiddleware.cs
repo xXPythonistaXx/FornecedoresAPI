@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using System;
-using System.Net;
+﻿using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace FornecedoresAPI.Middleware
@@ -9,10 +9,12 @@ namespace FornecedoresAPI.Middleware
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<ExceptionMiddleware> _logger;
 
-        public ExceptionMiddleware(RequestDelegate next)
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
         }
 
         public async Task InvokeAsync(HttpContext httpContext)
@@ -23,11 +25,12 @@ namespace FornecedoresAPI.Middleware
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Something went wrong: {ex}");
                 await HandleExceptionAsync(httpContext, ex);
             }
         }
 
-        private Task HandleExceptionAsync(HttpContext context, Exception exception)
+        private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -39,7 +42,7 @@ namespace FornecedoresAPI.Middleware
                 Detailed = exception.Message
             };
 
-            return context.Response.WriteAsync(JsonConvert.SerializeObject(response));
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
     }
 }

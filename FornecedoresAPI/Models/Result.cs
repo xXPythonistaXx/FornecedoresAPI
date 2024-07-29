@@ -2,33 +2,37 @@
 {
     public class Result<T>
     {
-        public bool IsSuccess { get; }
-        public string ErrorMessage { get; }
-        public T Value { get; }
+        public T? Value { get; private set; }
+        public string? ErrorMessage { get; private set; }
+        public bool IsSuccess => ErrorMessage == null;
 
-        protected Result(bool isSuccess, T value, string errorMessage)
+        private Result(T? value)
         {
-            IsSuccess = isSuccess;
             Value = value;
+            ErrorMessage = null;
+        }
+
+        private Result(string errorMessage)
+        {
+            Value = default;
             ErrorMessage = errorMessage;
         }
 
-        public static Result<T> Success(T value) => new Result<T>(true, value, null);
-        public static Result<T> Failure(string errorMessage) => new Result<T>(false, default, errorMessage);
+        public static Result<T> Success(T? value) => new Result<T>(value);
+        public static Result<T> Fail(string errorMessage) => new Result<T>(errorMessage);
     }
 
     public class Result
     {
-        public bool IsSuccess { get; }
-        public string ErrorMessage { get; }
+        public string? ErrorMessage { get; private set; }
+        public bool IsSuccess => ErrorMessage == null;
 
-        protected Result(bool isSuccess, string errorMessage)
+        private Result(string? errorMessage)
         {
-            IsSuccess = isSuccess;
             ErrorMessage = errorMessage;
         }
 
-        public static Result Success() => new Result(true, null);
-        public static Result Failure(string errorMessage) => new Result(false, errorMessage);
+        public static Result Success() => new Result(null);
+        public static Result Fail(string errorMessage) => new Result(errorMessage);
     }
 }
